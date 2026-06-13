@@ -3925,12 +3925,37 @@ get_options(cupsd_job_t *job,		/* I - Job */
     ipp_t *ipp = ippGetCollection(attr, 0);	// Collection value
     const char *destination_uri = ippGetString(ippFindAttribute(ipp, "destination-uri", IPP_TAG_URI), 0, NULL);
     const char *pre_dial_string = ippGetString(ippFindAttribute(ipp, "pre-dial-string", IPP_TAG_TEXT), 0, NULL);
+    char buffer[256], *bufptr;		// Sanitized value
 
     if (destination_uri && !strncmp(destination_uri, "tel:", 4))
-      num_pwgppds = cupsAddOption("phone", destination_uri + 4, num_pwgppds, &pwgppds);
+    {
+      for (destination_uri += 4, bufptr = buffer; *destination_uri && bufptr < (buffer + sizeof(buffer) - 1); destination_uri ++)
+      {
+        if ((*destination_uri & 255) < ' ' || *destination_uri == 127)
+          *bufptr++ = ' ';
+	else
+	  *bufptr++ = *destination_uri;
+      }
+
+      *bufptr = '\0';
+
+      num_pwgppds = cupsAddOption("phone", buffer, num_pwgppds, &pwgppds);
+    }
 
     if (pre_dial_string)
-      num_pwgppds = cupsAddOption("faxPrefix", pre_dial_string, num_pwgppds, &pwgppds);
+    {
+      for (bufptr = buffer; *pre_dial_string && bufptr < (buffer + sizeof(buffer) - 1); pre_dial_string ++)
+      {
+        if ((*pre_dial_string & 255) < ' ' || *pre_dial_string == 127)
+          *bufptr++ = ' ';
+	else
+	  *bufptr++ = *pre_dial_string;
+      }
+
+      *bufptr = '\0';
+
+      num_pwgppds = cupsAddOption("faxPrefix", buffer, num_pwgppds, &pwgppds);
+    }
   }
 
  /*
@@ -5453,7 +5478,7 @@ update_job(cupsd_job_t *job)		/* I - Job to check */
         * Filter out "special" PPD keywords...
         */
 
-        if (strcmp(keyword->name, "cupsFilter") && strcmp(keyword->name, "cupsFilter2") && strcmp(keyword->name, "cupsFinishingTemplate") && strcmp(keyword->name, "cupsIPPFinishings") && strcmp(keyword->name, "cupsIPPReason") && strcmp(keyword->name, "cupsMarkerName") && strcmp(keyword->name, "cupsMaxSize") && strncmp(keyword->name, "cupsMediaQualifier", 18) && strcmp(keyword->name, "cupsMinSize") && strcmp(keyword->name, "cupsPageSizeCategory") && strcmp(keyword->name, "cupsPortMonitor") && strcmp(keyword->name, "cupsPreFilter") && strcmp(keyword->name, "cupsPrintQuality") && strcmp(keyword->name, "APPrinterPreset"))
+        if (_cups_strcasecmp(keyword->name, "cupsFilter") && _cups_strcasecmp(keyword->name, "cupsFilter2") && _cups_strcasecmp(keyword->name, "cupsFinishingTemplate") && _cups_strcasecmp(keyword->name, "cupsIPPFinishings") && _cups_strcasecmp(keyword->name, "cupsIPPReason") && _cups_strcasecmp(keyword->name, "cupsMarkerName") && _cups_strcasecmp(keyword->name, "cupsMaxSize") && strncmp(keyword->name, "cupsMediaQualifier", 18) && _cups_strcasecmp(keyword->name, "cupsMinSize") && _cups_strcasecmp(keyword->name, "cupsPageSizeCategory") && _cups_strcasecmp(keyword->name, "cupsPortMonitor") && _cups_strcasecmp(keyword->name, "cupsPreFilter") && _cups_strcasecmp(keyword->name, "cupsPrintQuality") && _cups_strcasecmp(keyword->name, "APPrinterPreset"))
           job->num_keywords = cupsAddOption(keyword->name, keyword->value, job->num_keywords, &job->keywords);
       }
 
