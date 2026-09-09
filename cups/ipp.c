@@ -5469,7 +5469,7 @@ ipp_add_attr(ipp_t      *ipp,		/* I - IPP message */
   * Range check input...
   */
 
-  if (!ipp || num_values < 0)
+  if (!ipp || num_values < 0 || (name && strlen(name) >= IPP_MAX_KEYWORD))
     return (NULL);
 
  /*
@@ -6112,9 +6112,9 @@ ipp_read_io(void       *src,		/* I - Data source */
 
           n = (buffer[0] << 8) | buffer[1];
 
-          if (n >= IPP_BUF_SIZE)
+          if (n >= IPP_MAX_KEYWORD)
 	  {
-	    _cupsSetError(IPP_STATUS_ERROR_INTERNAL, _("IPP name larger than 32767 bytes."), 1);
+	    _cupsSetError(IPP_STATUS_ERROR_INTERNAL, _("IPP attribute name larger than 255 bytes."), 1);
 	    DEBUG_printf(("1ipp_read_io: bad name length %d.", n));
 	    goto rollback;
 	  }
@@ -6601,6 +6601,12 @@ ipp_read_io(void       *src,		/* I - Data source */
 		  _cupsSetError(IPP_STATUS_ERROR_INTERNAL,
 		                _("IPP memberName value is empty."), 1);
 	          DEBUG_puts("1ipp_read_io: Empty member name value.");
+		  goto rollback;
+		}
+		else if (n >= IPP_MAX_KEYWORD)
+		{
+		  _cupsSetError(IPP_STATUS_ERROR_INTERNAL, _("IPP memberName larger than 255 bytes."), 1);
+	          DEBUG_puts("1ipp_read_io: Member name too large.");
 		  goto rollback;
 		}
 		else if ((*cb)(src, buffer, (size_t)n) < n)
